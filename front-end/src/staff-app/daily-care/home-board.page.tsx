@@ -9,21 +9,41 @@ import { Person } from "shared/models/person"
 import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
-import { getSearchStudents } from "shared/helpers/data-modulation"
+import { sortStudents, sortType } from "shared/helpers/data-modulation"
+import { MenuItem, Select } from "@material-ui/core"
+import { NameSortType } from "shared/enums/sort.enums"
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [searchValue, setSearchValue] = useState("")
+  const [aplhaSortType, setAplhSort] = useState<sortType>(1)
+  const [nameSortType, setNameSortType] = useState(NameSortType.FirstName)
   const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
 
   useEffect(() => {
     void getStudents()
   }, [getStudents])
 
-  const onToolbarAction = (action: ToolbarAction) => {
+  const onToolbarAction = (action: ToolbarAction, sortAction?: SortAction) => {
     if (action === "roll") {
       setIsRollMode(true)
     }
+
+    if (action === "sort" && sortAction === "aplha") {
+      toggleAlphaSort()
+    }
+
+    if (action === "sort" && sortAction === NameSortType.FirstName) {
+      setNameSortType(NameSortType.FirstName)
+    }
+
+    if (action === "sort" && sortAction === NameSortType.LastName) {
+      setNameSortType(NameSortType.LastName)
+    }
+  }
+
+  const toggleAlphaSort = () => {
+    setAplhSort(aplhaSortType === -1 ? 1 : -1)
   }
 
   const onActiveRollAction = (action: ActiveRollAction) => {
@@ -40,7 +60,7 @@ export const HomeBoardPage: React.FC = () => {
   return (
     <>
       <S.PageContainer>
-        <Toolbar onSearchInput={onSearchInput} onItemClick={onToolbarAction} />
+        <Toolbar sortType={aplhaSortType} onSearchInput={onSearchInput} onItemClick={onToolbarAction} />
 
         {loadState === "loading" && (
           <CenteredContainer>
@@ -50,7 +70,7 @@ export const HomeBoardPage: React.FC = () => {
 
         {loadState === "loaded" && data?.students && (
           <>
-            {getSearchStudents(searchValue, data.students).map((s) => (
+            {sortStudents(aplhaSortType, nameSortType, data.students, searchValue)?.map((s) => (
               <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
             ))}
           </>
@@ -68,15 +88,24 @@ export const HomeBoardPage: React.FC = () => {
 }
 
 type ToolbarAction = "roll" | "sort"
+type SortAction = "aplha" | "first-name" | "last-name"
+
 interface ToolbarProps {
-  onItemClick: (action: ToolbarAction, value?: string) => void
+  onItemClick: (action: ToolbarAction, value?: SortAction) => void
   onSearchInput: (value: string) => void
+  sortType: sortType
 }
 const Toolbar: React.FC<ToolbarProps> = (props) => {
-  const { onItemClick, onSearchInput } = props
+  const { onItemClick, onSearchInput, sortType } = props
   return (
     <S.ToolbarContainer>
-      <div onClick={() => onItemClick("sort")}>First Name</div>
+      <div>
+        <S.Select style={{ color: "white" }} defaultValue={NameSortType.FirstName} onChange={(evt) => onItemClick("sort", evt.target.value as SortAction)}>
+          <MenuItem value={NameSortType.FirstName}>First Name</MenuItem>
+          <MenuItem value={NameSortType.LastName}>Last Name</MenuItem>
+        </S.Select>
+        <FontAwesomeIcon cursor="pointer" size="1x" onClick={() => onItemClick("sort", "aplha")} icon={sortType === 1 ? "sort-alpha-up" : "sort-alpha-down"} />
+      </div>
       <div>
         <S.Input onChange={(evt) => onSearchInput(evt.target.value)} placeholder="Search" />
       </div>
@@ -112,5 +141,11 @@ const S = {
   Input: styled.input`
     padding: ${Spacing.u1};
     border-radius: ${BorderRadius.default};
+  `,
+
+  Select: styled(Select)`
+    && {
+      margin: 0 20px;
+    }
   `,
 }
