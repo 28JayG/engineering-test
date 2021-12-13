@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { RollStateIcon } from "staff-app/components/roll-state/roll-state-icon.component"
 import { Spacing, FontWeight } from "shared/styles/styles"
 import { RolllStateType } from "shared/models/roll"
+import { useSortContext } from "providers/sort.provider"
 
 interface Props {
   stateList: StateList[]
@@ -11,9 +12,13 @@ interface Props {
   size?: number
 }
 export const RollStateList: React.FC<Props> = ({ stateList, size = 14, onItemClick }) => {
+  const { setSelectedRollState } = useSortContext()
+
   const onClick = (type: ItemType) => {
-    if (onItemClick) {
-      onItemClick(type)
+    if (type === "all") {
+      setSelectedRollState("")
+    } else {
+      setSelectedRollState(type)
     }
   }
 

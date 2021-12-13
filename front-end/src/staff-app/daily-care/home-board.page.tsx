@@ -1,28 +1,39 @@
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import styled from "styled-components"
 import Button from "@material-ui/core/ButtonBase"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { Spacing, BorderRadius, FontWeight } from "shared/styles/styles"
 import { Colors } from "shared/styles/colors"
 import { CenteredContainer } from "shared/components/centered-container/centered-container.component"
-import { Person } from "shared/models/person"
-import { useApi } from "shared/hooks/use-api"
 import { StudentListTile } from "staff-app/components/student-list-tile/student-list-tile.component"
 import { ActiveRollOverlay, ActiveRollAction } from "staff-app/components/active-roll-overlay/active-roll-overlay.component"
 import { sortStudents, sortType } from "shared/helpers/data-modulation"
 import { MenuItem, Select } from "@material-ui/core"
 import { NameSortType } from "shared/enums/sort.enums"
+import { RolllStateType } from "shared/models/roll"
+import { useStudentsContext } from "providers/students.provider"
+import { Person } from "shared/models/person"
+import { useSortContext } from "providers/sort.provider"
+
+interface StateCountsInterface {
+  present: number
+  late: number
+  absent: number
+}
 
 export const HomeBoardPage: React.FC = () => {
   const [isRollMode, setIsRollMode] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   const [aplhaSortType, setAplhSort] = useState<sortType>(1)
   const [nameSortType, setNameSortType] = useState(NameSortType.FirstName)
-  const [getStudents, data, loadState] = useApi<{ students: Person[] }>({ url: "get-homeboard-students" })
+  const [stateCounts, setStateCounts] = useState<StateCountsInterface>({
+    present: 0,
+    late: 0,
+    absent: 0,
+  })
 
-  useEffect(() => {
-    void getStudents()
-  }, [getStudents])
+  const { students, setStudents, loadState } = useStudentsContext()
+  const { selectedRollState } = useSortContext()
 
   const onToolbarAction = (action: ToolbarAction, sortAction?: SortAction) => {
     if (action === "roll") {
@@ -57,6 +68,25 @@ export const HomeBoardPage: React.FC = () => {
     setSearchValue(value)
   }
 
+  const handleStateChange = (nextState: RolllStateType, studentId: any, students: any) => {
+    const updatedStudents = students.map((student: Person) => (student.id === studentId ? { ...student, current_roll_state: nextState } : student))
+    setStateCounts(getCounts(updatedStudents))
+
+    setStudents(updatedStudents)
+  }
+
+  const getCounts = (students: Person[]) => {
+    return students.reduce(
+      (currentCounts, student) => {
+        if (student.current_roll_state && student.current_roll_state !== "unmark") {
+          currentCounts[student.current_roll_state] += 1
+        }
+        return currentCounts
+      },
+      { present: 0, absent: 0, late: 0 }
+    )
+  }
+
   return (
     <>
       <S.PageContainer>
@@ -68,10 +98,10 @@ export const HomeBoardPage: React.FC = () => {
           </CenteredContainer>
         )}
 
-        {loadState === "loaded" && data?.students && (
+        {loadState === "loaded" && students && (
           <>
-            {sortStudents(aplhaSortType, nameSortType, data.students, searchValue)?.map((s) => (
-              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} />
+            {sortStudents(aplhaSortType, nameSortType, students, selectedRollState, searchValue)?.map((s) => (
+              <StudentListTile key={s.id} isRollMode={isRollMode} student={s} onStateChange={(nextState, studnetId) => handleStateChange(nextState, studnetId, students)} />
             ))}
           </>
         )}
@@ -82,7 +112,7 @@ export const HomeBoardPage: React.FC = () => {
           </CenteredContainer>
         )}
       </S.PageContainer>
-      <ActiveRollOverlay isActive={isRollMode} onItemClick={onActiveRollAction} />
+      <ActiveRollOverlay stateCounts={{ all: students?.length, ...stateCounts }} isActive={isRollMode} onItemClick={onActiveRollAction} />
     </>
   )
 }

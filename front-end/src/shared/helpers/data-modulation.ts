@@ -1,5 +1,6 @@
 import { NameSortType } from "shared/enums/sort.enums"
 import { Person, PersonHelper } from "shared/models/person"
+import { RolllStateType } from "shared/models/roll"
 
 export const getSearchStudents = (searchVale: string, data: Person[]) => {
   // create a regex expresion of search value
@@ -13,13 +14,16 @@ export type nameSortFactorType = NameSortType.FirstName | NameSortType.LastName
 //sort asending or decending
 export type sortType = -1 | 1
 
-export const sortStudents = (sortType: sortType, sortFactor: nameSortFactorType, data: Person[], searchValue: string) => {
+export const sortStudents = (sortType: sortType, sortFactor: nameSortFactorType, data: Person[], rollState: RolllStateType | "", searchValue: string) => {
   //get searched students and then sort
   const searchResult = getSearchStudents(searchValue, data)
+  console.log(rollState)
+  const rollStateSortedStudnets = rollState ? searchResult.filter((s) => s.current_roll_state === rollState) : [...searchResult]
+
   switch (sortFactor) {
     case "first-name":
-      return searchResult.sort((a, b) => a.first_name.localeCompare(b.first_name) * sortType)
+      return rollStateSortedStudnets.sort((a, b) => a.first_name.localeCompare(b.first_name) * sortType)
     case "last-name":
-      return searchResult.sort((a, b) => a.last_name.localeCompare(b.last_name) * sortType)
+      return rollStateSortedStudnets.sort((a, b) => a.last_name.localeCompare(b.last_name) * sortType)
   }
 }

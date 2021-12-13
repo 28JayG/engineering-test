@@ -1,8 +1,11 @@
+import { RolllStateType } from "./roll"
+
 export interface Person {
   id: number
   first_name: string
   last_name: string
   photo_url?: string
+  current_roll_state?: RolllStateType
 }
 
 export const PersonHelper = {
