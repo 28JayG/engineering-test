@@ -17,7 +17,6 @@ export type sortType = -1 | 1
 export const sortStudents = (sortType: sortType, sortFactor: nameSortFactorType, data: Person[], rollState: RolllStateType | "", searchValue: string) => {
   //get searched students and then sort
   const searchResult = getSearchStudents(searchValue, data)
-  console.log(rollState)
   const rollStateSortedStudnets = rollState ? searchResult.filter((s) => s.current_roll_state === rollState) : [...searchResult]
 
   switch (sortFactor) {
